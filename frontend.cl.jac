@@ -5,13 +5,14 @@ import from .components.ui.button { Button }
 import from .components.ui.card { Card, CardContent }
 import from .components.ui.textarea { Textarea }
 import from .components.ui.avatar { Avatar, AvatarFallback }
+sv import from .services.debateService { DebateMessage, orchestrate_debate }
 
 def:pub app() -> JsxElement {
     has decisionInput: str = "";
     has isDebating: bool = False;
-    has messages: list[str] = [];
-    has replyIndex: int = 0;
+    has messages: list[DebateMessage] = [];
     has chatRef: Ref[HTMLDivElement] = Ref(None);
+    has errorMessage: str = "";
 
     can with [messages] entry {
         if chatRef.current {
@@ -19,38 +20,25 @@ def:pub app() -> JsxElement {
         }
     }
 
-    async can with [replyIndex] entry {
-        if replyIndex > 0 {
-            await new(Promise, lambda (resolve: any, reject: any) {
-                setTimeout(lambda { resolve.call(None, None); }, 1500);
-            });
-            replies: list[str] = [
-                "The Accountant: Let's look at the upfront costs...",
-                "The Optimist: But think about the modern features and peace of mind!",
-                "The Cynic: Peace of mind? You'll be locked into a lease trap."
-            ];
-            messages = messages + [replies[replyIndex - 1]];
-            if replyIndex < len(replies) {
-                replyIndex = replyIndex + 1;
-            } else {
-                replyIndex = 0;
-                isDebating = False;
-            }
-        }
-    }
-
     def handle_decision_change(e: InputEvent) {
         decisionInput = e.target.value;
     }
 
-    def submit_decision(e: MouseEvent) {
+    async def handle_submit(e: MouseEvent) {
         e.preventDefault();
         cleaned = decisionInput.strip();
         if cleaned and not isDebating {
             isDebating = True;
+            errorMessage = "";
             decisionInput = "";
-            messages = messages + ["You: " + cleaned];
-            replyIndex = 1;
+            messages = messages + [DebateMessage(agent="You", text=cleaned)];
+            try {
+                responses = await orchestrate_debate(cleaned);
+                messages = messages + responses;
+            } except Exception {
+                errorMessage = "The board couldn't complete this debate. Check your connection and try again.";
+            }
+            isDebating = False;
         }
     }
 
@@ -74,9 +62,12 @@ def:pub app() -> JsxElement {
                         <p className="text-sm text-muted-foreground">Give your board the context they need to weigh in.</p>
                     </div>
                     <textarea id="decision" value={decisionInput} onInput={handle_decision_change} disabled={isDebating} placeholder="Should I buy a used Honda or lease a new EV?" className="min-h-32 w-full resize-y rounded-xl border border-input bg-background px-3 py-3 text-base leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
+                    {if errorMessage {
+                        <p role="alert" className="text-sm text-destructive">{errorMessage}</p>
+                    }}
                     <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
                         <span className="text-xs text-muted-foreground">Your decision stays yours. Get a fresh perspective.</span>
-                        <Button onClick={submit_decision} disabled={not decisionInput.strip() or isDebating} className="h-11 gap-2 rounded-xl px-5 shadow-sm">
+                        <Button onClick={handle_submit} disabled={not decisionInput.strip() or isDebating} className="h-11 gap-2 rounded-xl px-5 shadow-sm">
                             <HugeiconsIcon icon={Message01Icon} strokeWidth={2} className="size-4" />
                             Submit to Board
                         </Button>
@@ -131,13 +122,13 @@ def:pub app() -> JsxElement {
             <section className="flex flex-col gap-4" aria-labelledby="debate-title">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2"><span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/50" /><span className="relative inline-flex size-2 rounded-full bg-primary" /></span><h2 id="debate-title" className="text-2xl font-semibold tracking-tight">Live Debate Chat</h2></div>
-                    <p className="text-sm text-muted-foreground">{ "The board is reviewing your decision..." if isDebating else "Your submitted decisions appear here." }</p>
+                    <p className="text-sm text-muted-foreground">{ "The Board is convening..." if isDebating else "Your submitted decisions appear here." }</p>
                 </div>
                 <div ref={chatRef} className="flex max-h-[500px] min-h-52 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
                     {if isDebating {
-                        <div className="flex min-h-40 items-center justify-center gap-3 text-center text-sm font-medium text-muted-foreground">
+                        <div className="flex min-h-24 items-center justify-center gap-3 text-center text-sm font-medium text-muted-foreground">
                             <span className="size-2 animate-pulse rounded-full bg-primary" />
-                            <span>The Board is convening...</span>
+                            <span>Gathering each perspective...</span>
                         </div>
                     }}
                     {if len(messages) == 0 and not isDebating {
@@ -149,38 +140,38 @@ def:pub app() -> JsxElement {
                         skip;
                     }}
                     {for (i, text) in enumerate(messages) {
-                        if text.startswith("The Accountant:") {
+                        if text.agent == "Accountant" {
                             <div key={str(i)} className="flex w-full items-start gap-3">
                                 <Avatar className="size-9 border border-blue-200 bg-blue-100 text-blue-800"><AvatarFallback className="bg-blue-100 text-xs font-semibold text-blue-800">AC</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-blue-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-blue-700">The Accountant</p>
-                                    <p className="whitespace-pre-wrap">{text.replace("The Accountant: ", "")}</p>
+                                    <p className="whitespace-pre-wrap">{text.text}</p>
                                 </div>
                             </div>
                         }
-                        elif text.startswith("The Optimist:") {
+                        elif text.agent == "Optimist" {
                             <div key={str(i)} className="flex w-full items-start gap-3">
                                 <Avatar className="size-9 border border-amber-200 bg-amber-100 text-amber-800"><AvatarFallback className="bg-amber-100 text-xs font-semibold text-amber-800">OP</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-amber-800">The Optimist</p>
-                                    <p className="whitespace-pre-wrap">{text.replace("The Optimist: ", "")}</p>
+                                    <p className="whitespace-pre-wrap">{text.text}</p>
                                 </div>
                             </div>
                         }
-                        elif text.startswith("The Cynic:") {
+                        elif text.agent == "Cynic" {
                             <div key={str(i)} className="flex w-full items-start gap-3">
                                 <Avatar className="size-9 border border-rose-200 bg-slate-800 text-rose-100"><AvatarFallback className="bg-slate-800 text-xs font-semibold text-rose-100">CY</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-rose-700">The Cynic</p>
-                                    <p className="whitespace-pre-wrap">{text.replace("The Cynic: ", "")}</p>
+                                    <p className="whitespace-pre-wrap">{text.text}</p>
                                 </div>
                             </div>
                         }
                         else {
                             <div key={str(i)} className="flex w-full justify-end">
                                 <div className="max-w-[90%] rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground shadow-sm sm:max-w-[75%]">
-                                    <p className="mb-1 text-xs font-semibold text-primary-foreground/75">Your decision</p>
-                                    <p className="whitespace-pre-wrap">{text.replace("You: ", "")}</p>
+                                    <p className="mb-1 text-xs font-semibold text-primary-foreground/75">{text.agent}</p>
+                                    <p className="whitespace-pre-wrap">{text.text}</p>
                                 </div>
                             </div>
                         }
