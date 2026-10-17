@@ -1,4 +1,5 @@
 import from http { HTTPMethod }
+import from os { getenv }
 
 obj DebateMessage {
     has agent: str;
@@ -47,11 +48,27 @@ async def orchestrate_debate(decision: str) -> DebateResult {
     if not decision.strip() {
         raise ValueError("Decision cannot be empty.");
     }
+    groq_key = getenv("GROQ_API_KEY");
+    openai_key = getenv("OPENAI_API_KEY");
+    print("Debate request started. GROQ_API_KEY configured:", bool(groq_key), "OPENAI_API_KEY configured:", bool(openai_key));
+    if not groq_key and not openai_key {
+        raise ValueError("No LLM API key configured. Add GROQ_API_KEY in JacHammer Settings.");
+    }
+    print("Debate LLM stage: Accountant");
     accountant = await accountant_take(decision);
+    print("Debate LLM stage complete: Accountant");
+    print("Debate LLM stage: Environmentalist");
     environmentalist = await environmentalist_take(decision, accountant);
+    print("Debate LLM stage complete: Environmentalist");
+    print("Debate LLM stage: Cynic");
     cynic = await cynic_take(decision, accountant, environmentalist);
+    print("Debate LLM stage complete: Cynic");
+    print("Debate LLM stage: Optimist");
     optimist = await optimist_take(decision, accountant, environmentalist, cynic);
+    print("Debate LLM stage complete: Optimist");
+    print("Debate LLM stage: Final vote");
     vote = await final_board_vote(decision, accountant, environmentalist, cynic, optimist);
+    print("Debate request completed successfully.");
     return DebateResult(
         messages=[
             DebateMessage(agent="Accountant", text=accountant),
@@ -65,5 +82,10 @@ async def orchestrate_debate(decision: str) -> DebateResult {
 
 @restspec(method=HTTPMethod.POST, path="/api/debate")
 async def:pub debate_api(decision: str) -> DebateResult {
-    return await orchestrate_debate(decision);
+    try {
+        return await orchestrate_debate(decision);
+    } except Exception as e {
+        print("POST /api/debate failed:", type(e).__name__, str(e));
+        raise;
+    }
 }
