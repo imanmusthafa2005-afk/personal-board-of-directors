@@ -1,4 +1,3 @@
-import from http { HTTPMethod }
 import from os { getenv }
 
 obj DebateMessage {
@@ -80,7 +79,6 @@ async def orchestrate_debate(decision: str) -> DebateResult {
     );
 }
 
-@restspec(method=HTTPMethod.POST, path="/api/debate")
 async def:pub debate_api(decision: str) -> DebateResult {
     try {
         return await orchestrate_debate(decision);
