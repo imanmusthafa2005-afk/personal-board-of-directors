@@ -6,19 +6,20 @@ import from .components.ui.card { Card, CardContent }
 import from .components.ui.textarea { Textarea }
 
 def:pub app() -> JsxElement {
-    has decision: str = "";
-    has submitted_decisions: list[str] = [];
+    has decisionInput: str = "";
+    has isDebating: bool = False;
+    has messages: list[str] = [];
 
     def handle_decision_change(e: InputEvent) {
-        decision = e.target.value;
+        decisionInput = e.target.value;
     }
 
     def submit_decision(e: MouseEvent) {
         e.preventDefault();
-        cleaned = decision.strip();
-        if cleaned {
-            submitted_decisions = submitted_decisions + [cleaned];
-            decision = "";
+        cleaned = decisionInput.strip();
+        if cleaned and not isDebating {
+            messages = messages + [cleaned];
+            decisionInput = "";
         }
     }
 
@@ -41,10 +42,10 @@ def:pub app() -> JsxElement {
                         <label htmlFor="decision" className="text-sm font-semibold">What’s on your mind?</label>
                         <p className="text-sm text-muted-foreground">Give your board the context they need to weigh in.</p>
                     </div>
-                    <textarea id="decision" value={decision} onInput={handle_decision_change} placeholder="Should I buy a used Honda or lease a new EV?" className="min-h-32 w-full resize-y rounded-xl border border-input bg-background px-3 py-3 text-base leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
+                    <textarea id="decision" value={decisionInput} onInput={handle_decision_change} placeholder="Should I buy a used Honda or lease a new EV?" className="min-h-32 w-full resize-y rounded-xl border border-input bg-background px-3 py-3 text-base leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
                     <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
                         <span className="text-xs text-muted-foreground">Your decision stays yours. Get a fresh perspective.</span>
-                        <Button onClick={submit_decision} disabled={not decision.strip()} className="h-11 gap-2 rounded-xl px-5 shadow-sm">
+                        <Button onClick={submit_decision} disabled={not decisionInput.strip() or isDebating} className="h-11 gap-2 rounded-xl px-5 shadow-sm">
                             <HugeiconsIcon icon={Message01Icon} strokeWidth={2} className="size-4" />
                             Submit to Board
                         </Button>
@@ -99,10 +100,10 @@ def:pub app() -> JsxElement {
             <section className="flex flex-col gap-4" aria-labelledby="debate-title">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2"><span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/50" /><span className="relative inline-flex size-2 rounded-full bg-primary" /></span><h2 id="debate-title" className="text-2xl font-semibold tracking-tight">Live Debate Chat</h2></div>
-                    <p className="text-sm text-muted-foreground">Your submitted decisions appear here.</p>
+                    <p className="text-sm text-muted-foreground">{ "The board is reviewing your decision..." if isDebating else "Your submitted decisions appear here." }</p>
                 </div>
                 <div className="flex max-h-[500px] min-h-52 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
-                    {if len(submitted_decisions) == 0 {
+                    {if len(messages) == 0 {
                         <div className="flex min-h-40 flex-col items-center justify-center gap-3 text-center">
                             <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground"><HugeiconsIcon icon={Message01Icon} strokeWidth={1.8} className="size-5" /></div>
                             <p className="font-medium">Your debate starts here</p>
@@ -110,7 +111,7 @@ def:pub app() -> JsxElement {
                         </div>
                         skip;
                     }}
-                    {for (i, text) in enumerate(submitted_decisions) {
+                    {for (i, text) in enumerate(messages) {
                         <div key={str(i)} className="flex w-full justify-end">
                             <div className="max-w-[90%] rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground shadow-sm sm:max-w-[75%]">
                                 <p className="mb-1 text-xs font-semibold text-primary-foreground/75">Your decision</p>
