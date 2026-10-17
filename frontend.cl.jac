@@ -5,12 +5,12 @@ import from .components.ui.button { Button }
 import from .components.ui.card { Card, CardContent }
 import from .components.ui.textarea { Textarea }
 import from .components.ui.avatar { Avatar, AvatarFallback }
-sv import from .services.debateService { DebateMessage, DebateResult }
+sv import from .services.debateService { DebateResult }
 
 def:pub app() -> JsxElement {
     has decisionInput: str = "";
     has isDebating: bool = False;
-    has messages: list[DebateMessage] = [];
+    has messages: list[dict] = [];
     has debateComplete: bool = False;
     has finalVote: str = "";
     has chatRef: Ref[HTMLDivElement] = Ref(None);
@@ -33,7 +33,8 @@ def:pub app() -> JsxElement {
             isDebating = True;
             errorMessage = "";
             decisionInput = "";
-            messages = [DebateMessage(agent="You", text=cleaned)];
+            user_messages: list[dict[str, str]] = [{"agent": "You", "text": cleaned}];
+            messages = user_messages;
             debateComplete = False;
             finalVote = "";
             try {
@@ -48,12 +49,13 @@ def:pub app() -> JsxElement {
                 payload = await response.json();
                 response_result = payload["data"]["result"] as DebateResult;
                 response_messages = response_result.messages;
-                visible_messages: list[DebateMessage] = [DebateMessage(agent="You", text=cleaned)];
+                visible_messages: list[dict[str, str]] = user_messages;
                 for reply in response_messages {
                     await new(Promise, lambda (resolve: any, reject: any) {
                         setTimeout(lambda { resolve.call(None, None); }, 2000);
                     });
-                    visible_messages = visible_messages + [reply];
+                    reply_item: dict[str, str] = {"agent": reply.agent, "text": reply.text};
+                    visible_messages = visible_messages + [reply_item];
                     messages = visible_messages;
                 }
                 if len(response_messages) > 0 {
@@ -177,38 +179,38 @@ def:pub app() -> JsxElement {
                         skip;
                     }}
                     {for (i, text) in enumerate(messages) {
-                        if text.agent == "Accountant" {
+                        if text["agent"] == "Accountant" {
                             <div key={str(i)} className="flex w-full items-start gap-3">
                                 <Avatar className="size-9 border border-blue-200 bg-blue-100 text-blue-800"><AvatarFallback className="bg-blue-100 text-xs font-semibold text-blue-800">AC</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-blue-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-blue-700">The Accountant</p>
-                                    <p className="whitespace-pre-wrap">{text.text}</p>
+                                    <p className="whitespace-pre-wrap">{text["text"]}</p>
                                 </div>
                             </div>
                         }
-                        elif text.agent == "Optimist" {
+                        elif text["agent"] == "Optimist" {
                             <div key={str(i)} className="flex w-full items-start gap-3">
                                 <Avatar className="size-9 border border-amber-200 bg-amber-100 text-amber-800"><AvatarFallback className="bg-amber-100 text-xs font-semibold text-amber-800">OP</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-amber-800">The Optimist</p>
-                                    <p className="whitespace-pre-wrap">{text.text}</p>
+                                    <p className="whitespace-pre-wrap">{text["text"]}</p>
                                 </div>
                             </div>
                         }
-                        elif text.agent == "Cynic" {
+                        elif text["agent"] == "Cynic" {
                             <div key={str(i)} className="flex w-full items-start gap-3">
                                 <Avatar className="size-9 border border-rose-200 bg-slate-800 text-rose-100"><AvatarFallback className="bg-slate-800 text-xs font-semibold text-rose-100">CY</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-rose-700">The Cynic</p>
-                                    <p className="whitespace-pre-wrap">{text.text}</p>
+                                    <p className="whitespace-pre-wrap">{text["text"]}</p>
                                 </div>
                             </div>
                         }
                         else {
                             <div key={str(i)} className="flex w-full justify-end">
                                 <div className="max-w-[90%] rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground shadow-sm sm:max-w-[75%]">
-                                    <p className="mb-1 text-xs font-semibold text-primary-foreground/75">{text.agent}</p>
-                                    <p className="whitespace-pre-wrap">{text.text}</p>
+                                    <p className="mb-1 text-xs font-semibold text-primary-foreground/75">{text["agent"]}</p>
+                                    <p className="whitespace-pre-wrap">{text["text"]}</p>
                                 </div>
                             </div>
                         }
