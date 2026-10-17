@@ -9,6 +9,28 @@ def:pub app() -> JsxElement {
     has decisionInput: str = "";
     has isDebating: bool = False;
     has messages: list[str] = [];
+    has replyIndex: int = 0;
+
+    async can with [replyIndex] entry {
+        if replyIndex > 0 {
+            await new(Promise, lambda (resolve: any, reject: any) {
+                setTimeout(lambda { resolve.call(None, None); }, 1500);
+            });
+            replies: list[str] = [
+                "The Cynic: What risks or hidden costs could make this harder than it first appears?",
+                "The Optimist: This could open an exciting new path. What would make the upside worthwhile?",
+                "The Accountant: Compare the full costs, expected return, and impact on your budget over time.",
+                "The Environmentalist: Consider the long-term sustainability and who else may be affected."
+            ];
+            messages = messages + [replies[replyIndex - 1]];
+            if replyIndex < len(replies) {
+                replyIndex = replyIndex + 1;
+            } else {
+                replyIndex = 0;
+                isDebating = False;
+            }
+        }
+    }
 
     def handle_decision_change(e: InputEvent) {
         decisionInput = e.target.value;
@@ -18,9 +40,10 @@ def:pub app() -> JsxElement {
         e.preventDefault();
         cleaned = decisionInput.strip();
         if cleaned and not isDebating {
-            messages = messages + [cleaned];
-            decisionInput = "";
             isDebating = True;
+            decisionInput = "";
+            messages = messages + ["You: " + cleaned];
+            replyIndex = 1;
         }
     }
 
