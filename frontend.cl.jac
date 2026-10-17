@@ -5,7 +5,7 @@ import from .components.ui.button { Button }
 import from .components.ui.card { Card, CardContent }
 import from .components.ui.textarea { Textarea }
 import from .components.ui.avatar { Avatar, AvatarFallback }
-sv import from .services.debateService { DebateResult }
+sv import from .services.debateService { DebateResult, debate_api }
 
 def:pub app() -> JsxElement {
     has decisionInput: str = "";
@@ -38,16 +38,7 @@ def:pub app() -> JsxElement {
             debateComplete = False;
             finalVote = "";
             try {
-                response = await fetch("/api/debate", {
-                    "method": "POST",
-                    "headers": {"Content-Type": "application/json"},
-                    "body": JSON.stringify({"decision": cleaned})
-                });
-                if not response.ok {
-                    raise ValueError("Debate request failed.");
-                }
-                payload = await response.json();
-                response_result = payload["data"]["result"] as DebateResult;
+                response_result = await debate_api(cleaned);
                 response_messages = response_result.messages;
                 visible_messages: list[dict[str, str]] = user_messages;
                 for reply in response_messages {

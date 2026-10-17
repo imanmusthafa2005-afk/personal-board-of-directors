@@ -52,7 +52,7 @@ async def orchestrate_debate(decision: str) -> DebateResult {
     openai_key = getenv("OPENAI_API_KEY");
     print("Debate request started. GROQ_API_KEY configured:", bool(groq_key), "OPENAI_API_KEY configured:", bool(openai_key));
     if not groq_key and not openai_key {
-        raise ValueError("No LLM API key configured. Add GROQ_API_KEY in JacHammer Settings.");
+        print("No key visible through os.environ; continuing so configured byLLM credentials can be used.");
     }
     print("Debate LLM stage: Accountant");
     accountant = await accountant_take(decision);
