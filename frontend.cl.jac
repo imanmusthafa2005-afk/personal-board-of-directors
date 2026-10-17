@@ -13,12 +13,12 @@ def:pub app() -> JsxElement {
     has messages: list[dict] = [];
     has debateComplete: bool = False;
     has finalVote: str = "";
-    has chatRef: Ref[HTMLDivElement] = Ref(None);
+    has bottomRef: Ref[HTMLDivElement] = Ref(None);
     has errorMessage: str = "";
 
     can with [messages] entry {
-        if chatRef.current {
-            chatRef.current.scrollTop = chatRef.current.scrollHeight;
+        if bottomRef.current {
+            bottomRef.current.scrollIntoView({"behavior": "smooth", "block": "end"});
         }
     }
 
@@ -154,11 +154,18 @@ def:pub app() -> JsxElement {
                     <div className="flex items-center gap-2"><span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/50" /><span className="relative inline-flex size-2 rounded-full bg-primary" /></span><h2 id="debate-title" className="text-2xl font-semibold tracking-tight">Live Debate Chat</h2></div>
                     <p className="text-sm text-muted-foreground">{ "The Board is convening..." if isDebating else "Your submitted decisions appear here." }</p>
                 </div>
-                <div ref={chatRef} className="flex max-h-[500px] min-h-52 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
+                <div className="flex max-h-[500px] min-h-52 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
                     {if isDebating {
-                        <div className="flex min-h-24 items-center justify-center gap-3 text-center text-sm font-medium text-muted-foreground">
-                            <span className="size-2 animate-pulse rounded-full bg-primary" />
-                            <span>Gathering each perspective...</span>
+                        <div className="flex w-full items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <Avatar className="size-9 border border-primary/15 bg-primary/10 text-primary"><AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">BD</AvatarFallback></Avatar>
+                            <div className="flex items-center gap-3 rounded-2xl rounded-tl-md border border-border bg-muted/60 px-4 py-3 text-sm text-muted-foreground shadow-sm">
+                                <span className="font-semibold text-foreground">The Board</span>
+                                <span className="flex items-center gap-1" aria-label="The Board is thinking">
+                                    <span className="size-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]" />
+                                    <span className="size-1.5 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]" />
+                                    <span className="size-1.5 animate-bounce rounded-full bg-primary" />
+                                </span>
+                            </div>
                         </div>
                     }}
                     {if len(messages) == 0 and not isDebating {
@@ -171,7 +178,7 @@ def:pub app() -> JsxElement {
                     }}
                     {for (i, text) in enumerate(messages) {
                         if text["agent"] == "Accountant" {
-                            <div key={str(i)} className="flex w-full items-start gap-3">
+                            <div key={str(i)} className="flex w-full items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <Avatar className="size-9 border border-blue-200 bg-blue-100 text-blue-800"><AvatarFallback className="bg-blue-100 text-xs font-semibold text-blue-800">AC</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-blue-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-blue-700">The Accountant</p>
@@ -180,7 +187,7 @@ def:pub app() -> JsxElement {
                             </div>
                         }
                         elif text["agent"] == "Optimist" {
-                            <div key={str(i)} className="flex w-full items-start gap-3">
+                            <div key={str(i)} className="flex w-full items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <Avatar className="size-9 border border-amber-200 bg-amber-100 text-amber-800"><AvatarFallback className="bg-amber-100 text-xs font-semibold text-amber-800">OP</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-amber-800">The Optimist</p>
@@ -189,7 +196,7 @@ def:pub app() -> JsxElement {
                             </div>
                         }
                         elif text["agent"] == "Cynic" {
-                            <div key={str(i)} className="flex w-full items-start gap-3">
+                            <div key={str(i)} className="flex w-full items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <Avatar className="size-9 border border-rose-200 bg-slate-800 text-rose-100"><AvatarFallback className="bg-slate-800 text-xs font-semibold text-rose-100">CY</AvatarFallback></Avatar>
                                 <div className="max-w-[90%] rounded-2xl rounded-tl-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-950 shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-rose-700">The Cynic</p>
@@ -198,7 +205,7 @@ def:pub app() -> JsxElement {
                             </div>
                         }
                         else {
-                            <div key={str(i)} className="flex w-full justify-end">
+                            <div key={str(i)} className="flex w-full justify-end animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="max-w-[90%] rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground shadow-sm sm:max-w-[75%]">
                                     <p className="mb-1 text-xs font-semibold text-primary-foreground/75">{text["agent"]}</p>
                                     <p className="whitespace-pre-wrap">{text["text"]}</p>
@@ -207,7 +214,7 @@ def:pub app() -> JsxElement {
                         }
                     }}
                     {if debateComplete {
-                        <div className="mt-3 flex flex-col gap-4 rounded-2xl border-2 border-primary/30 bg-primary/10 p-5 shadow-md sm:p-6">
+                        <div className="mt-3 flex flex-col gap-4 rounded-2xl border-2 border-primary/30 bg-primary/10 p-5 shadow-md animate-in fade-in slide-in-from-bottom-2 duration-300 sm:p-6">
                             <div>
                                 <p className="text-xs font-semibold uppercase tracking-wider text-primary">Final Board Vote</p>
                                 <p className="mt-2 text-xl font-bold leading-snug tracking-tight text-foreground">{finalVote}</p>
@@ -215,6 +222,7 @@ def:pub app() -> JsxElement {
                             <Button onClick={start_new_decision} variant="outline" className="w-fit">New Decision</Button>
                         </div>
                     }}
+                    <div ref={bottomRef} aria-hidden="true" className="h-px w-full shrink-0" />
                 </div>
             </section>
             <footer className="border-t pt-5 text-center text-xs text-muted-foreground">Thoughtful decisions start with better questions.</footer>
