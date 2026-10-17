@@ -17,10 +17,9 @@ def:pub app() -> JsxElement {
                 setTimeout(lambda { resolve.call(None, None); }, 1500);
             });
             replies: list[str] = [
-                "The Cynic: What risks or hidden costs could make this harder than it first appears?",
-                "The Optimist: This could open an exciting new path. What would make the upside worthwhile?",
-                "The Accountant: Compare the full costs, expected return, and impact on your budget over time.",
-                "The Environmentalist: Consider the long-term sustainability and who else may be affected."
+                "The Accountant: Let's look at the upfront costs...",
+                "The Optimist: But think about the modern features and peace of mind!",
+                "The Cynic: Peace of mind? You'll be locked into a lease trap."
             ];
             messages = messages + [replies[replyIndex - 1]];
             if replyIndex < len(replies) {
