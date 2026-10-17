@@ -20,6 +20,7 @@ def:pub app() -> JsxElement {
         if cleaned and not isDebating {
             messages = messages + [cleaned];
             decisionInput = "";
+            isDebating = True;
         }
     }
 
@@ -42,7 +43,7 @@ def:pub app() -> JsxElement {
                         <label htmlFor="decision" className="text-sm font-semibold">What’s on your mind?</label>
                         <p className="text-sm text-muted-foreground">Give your board the context they need to weigh in.</p>
                     </div>
-                    <textarea id="decision" value={decisionInput} onInput={handle_decision_change} placeholder="Should I buy a used Honda or lease a new EV?" className="min-h-32 w-full resize-y rounded-xl border border-input bg-background px-3 py-3 text-base leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
+                    <textarea id="decision" value={decisionInput} onInput={handle_decision_change} disabled={isDebating} placeholder="Should I buy a used Honda or lease a new EV?" className="min-h-32 w-full resize-y rounded-xl border border-input bg-background px-3 py-3 text-base leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />
                     <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
                         <span className="text-xs text-muted-foreground">Your decision stays yours. Get a fresh perspective.</span>
                         <Button onClick={submit_decision} disabled={not decisionInput.strip() or isDebating} className="h-11 gap-2 rounded-xl px-5 shadow-sm">
@@ -103,7 +104,13 @@ def:pub app() -> JsxElement {
                     <p className="text-sm text-muted-foreground">{ "The board is reviewing your decision..." if isDebating else "Your submitted decisions appear here." }</p>
                 </div>
                 <div className="flex max-h-[500px] min-h-52 flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
-                    {if len(messages) == 0 {
+                    {if isDebating {
+                        <div className="flex min-h-40 items-center justify-center gap-3 text-center text-sm font-medium text-muted-foreground">
+                            <span className="size-2 animate-pulse rounded-full bg-primary" />
+                            <span>The Board is convening...</span>
+                        </div>
+                    }}
+                    {if len(messages) == 0 and not isDebating {
                         <div className="flex min-h-40 flex-col items-center justify-center gap-3 text-center">
                             <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground"><HugeiconsIcon icon={Message01Icon} strokeWidth={1.8} className="size-5" /></div>
                             <p className="font-medium">Your debate starts here</p>
