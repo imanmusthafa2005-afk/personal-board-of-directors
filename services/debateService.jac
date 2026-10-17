@@ -47,12 +47,7 @@ async def orchestrate_debate(decision: str) -> DebateResult {
     if not decision.strip() {
         raise ValueError("Decision cannot be empty.");
     }
-    groq_key = getenv("GROQ_API_KEY");
-    openai_key = getenv("OPENAI_API_KEY");
-    print("Debate request started. GROQ_API_KEY configured:", bool(groq_key), "OPENAI_API_KEY configured:", bool(openai_key));
-    if not groq_key and not openai_key {
-        print("No key visible through os.environ; continuing so configured byLLM credentials can be used.");
-    }
+    print("Debate request accepted; starting Groq-backed LLM chain.");
     print("Debate LLM stage: Accountant");
     accountant = accountant_take(decision);
     print("Debate LLM stage complete: Accountant");
