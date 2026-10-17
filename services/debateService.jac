@@ -1,6 +1,13 @@
+import from http { HTTPMethod }
+
 obj DebateMessage {
     has agent: str;
     has text: str;
+}
+
+obj DebateResult {
+    has messages: list[DebateMessage];
+    has vote: str;
 }
 
 sem DebateMessage.agent = "The speaker's persona name, without an article.";
@@ -28,7 +35,15 @@ sem optimist_take.accountant = "The Accountant's financial take.";
 sem optimist_take.environmentalist = "The Environmentalist's response.";
 sem optimist_take.cynic = "The Cynic's criticism.";
 
-async def:pub orchestrate_debate(decision: str) -> list[DebateMessage] {
+def final_board_vote(decision: str, accountant: str, environmentalist: str, cynic: str, optimist: str) -> str by llm(temperature=0.3, max_tokens=100);
+sem final_board_vote = "Return a concise final board recommendation with a vote tally out of four and practical recommendation. Be consistent with the discussion.";
+sem final_board_vote.decision = "The decision under discussion.";
+sem final_board_vote.accountant = "Accountant's take.";
+sem final_board_vote.environmentalist = "Environmentalist's response.";
+sem final_board_vote.cynic = "Cynic's critique.";
+sem final_board_vote.optimist = "Optimist's silver lining.";
+
+async def orchestrate_debate(decision: str) -> DebateResult {
     if not decision.strip() {
         raise ValueError("Decision cannot be empty.");
     }
@@ -36,10 +51,19 @@ async def:pub orchestrate_debate(decision: str) -> list[DebateMessage] {
     environmentalist = await environmentalist_take(decision, accountant);
     cynic = await cynic_take(decision, accountant, environmentalist);
     optimist = await optimist_take(decision, accountant, environmentalist, cynic);
-    return [
-        DebateMessage(agent="Accountant", text=accountant),
-        DebateMessage(agent="Environmentalist", text=environmentalist),
-        DebateMessage(agent="Cynic", text=cynic),
-        DebateMessage(agent="Optimist", text=optimist)
-    ];
+    vote = await final_board_vote(decision, accountant, environmentalist, cynic, optimist);
+    return DebateResult(
+        messages=[
+            DebateMessage(agent="Accountant", text=accountant),
+            DebateMessage(agent="Environmentalist", text=environmentalist),
+            DebateMessage(agent="Cynic", text=cynic),
+            DebateMessage(agent="Optimist", text=optimist)
+        ],
+        vote=vote
+    );
+}
+
+@restspec(method=HTTPMethod.POST, path="/api/debate")
+async def:pub debate_api(decision: str) -> DebateResult {
+    return await orchestrate_debate(decision);
 }

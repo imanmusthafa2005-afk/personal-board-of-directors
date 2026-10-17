@@ -5,12 +5,14 @@ import from .components.ui.button { Button }
 import from .components.ui.card { Card, CardContent }
 import from .components.ui.textarea { Textarea }
 import from .components.ui.avatar { Avatar, AvatarFallback }
-sv import from .services.debateService { DebateMessage, orchestrate_debate }
+sv import from .services.debateService { DebateMessage, DebateResult }
 
 def:pub app() -> JsxElement {
     has decisionInput: str = "";
     has isDebating: bool = False;
     has messages: list[DebateMessage] = [];
+    has debateComplete: bool = False;
+    has finalVote: str = "";
     has chatRef: Ref[HTMLDivElement] = Ref(None);
     has errorMessage: str = "";
 
@@ -31,15 +33,50 @@ def:pub app() -> JsxElement {
             isDebating = True;
             errorMessage = "";
             decisionInput = "";
-            messages = messages + [DebateMessage(agent="You", text=cleaned)];
+            messages = [DebateMessage(agent="You", text=cleaned)];
+            debateComplete = False;
+            finalVote = "";
             try {
-                responses = await orchestrate_debate(cleaned);
-                messages = messages + responses;
+                response = await fetch("/api/debate", {
+                    "method": "POST",
+                    "headers": {"Content-Type": "application/json"},
+                    "body": JSON.stringify({"decision": cleaned})
+                });
+                if not response.ok {
+                    raise ValueError("Debate request failed.");
+                }
+                payload = await response.json();
+                response_result = payload["data"]["result"] as DebateResult;
+                response_messages = response_result.messages;
+                visible_messages: list[DebateMessage] = [DebateMessage(agent="You", text=cleaned)];
+                for reply in response_messages {
+                    await new(Promise, lambda (resolve: any, reject: any) {
+                        setTimeout(lambda { resolve.call(None, None); }, 2000);
+                    });
+                    visible_messages = visible_messages + [reply];
+                    messages = visible_messages;
+                }
+                if len(response_messages) > 0 {
+                    finalVote = response_result.vote;
+                } else {
+                    finalVote = "The Board could not reach a recommendation.";
+                }
+                debateComplete = True;
             } except Exception {
-                errorMessage = "The board couldn't complete this debate. Check your connection and try again.";
+                messages = [];
+                errorMessage = "The board is currently out of office. Please try again.";
             }
             isDebating = False;
         }
+    }
+
+    def start_new_decision(e: MouseEvent) {
+        decisionInput = "";
+        messages = [];
+        errorMessage = "";
+        finalVote = "";
+        debateComplete = False;
+        isDebating = False;
     }
 
     return <main className="min-h-screen bg-muted/40 px-4 py-10 text-foreground sm:px-6 lg:py-14">
@@ -175,6 +212,15 @@ def:pub app() -> JsxElement {
                                 </div>
                             </div>
                         }
+                    }}
+                    {if debateComplete {
+                        <div className="mt-3 flex flex-col gap-4 rounded-2xl border-2 border-primary/30 bg-primary/10 p-5 shadow-md sm:p-6">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Final Board Vote</p>
+                                <p className="mt-2 text-xl font-bold leading-snug tracking-tight text-foreground">{finalVote}</p>
+                            </div>
+                            <Button onClick={start_new_decision} variant="outline" className="w-fit">New Decision</Button>
+                        </div>
                     }}
                 </div>
             </section>
